@@ -1,0 +1,48 @@
+name: 'Run PR Review'
+on:
+  pull_request:
+    types: [opened, reopened, ready_for_review]
+  issue_comment:
+jobs:
+  pr_agent_job:
+    if: ${{ github.event.sender.type != 'Bot' }}
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+      pull-requests: write
+      contents: write
+    name: Run pr agent
+    steps:
+      - name: PR Agent action step
+        id: pragent
+        uses: Symbolic-Link/pr-agent@main
+        env:
+          OPENAI_KEY: ${{ secrets.LLM_API_KEY_OAI }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # GITHUB_TOKEN: ${{ secrets.PAT_TOKEN }}
+
+
+  comment:
+      runs-on: ubuntu-latest
+      needs: pr_agent_job
+      steps:
+        - uses: actions/github-script@v7
+          with:
+            github-token: ${{secrets.PAT_TOKEN}}
+            script: |
+              github.rest.issues.createComment({
+                issue_number: context.issue.number,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                body: '@openhands-agent, take a look.'
+              })
+
+          
+      # - name: Tag OH SWE to address suggestions
+      #   uses: actions-ecosystem/action-add-labels@v1
+      #   with:
+      #     labels: "fix-me"
+      #   env:
+          # Use the GITHUB_TOKEN provided by GitHub Actions
+          #github_token: ${{ secrets.GITHUB_TOKEN }}
+          
